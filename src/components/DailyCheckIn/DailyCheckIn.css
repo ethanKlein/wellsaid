@@ -1,0 +1,58 @@
+.daily-checkin-bg {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #ffd6c0 0%, #ffe7d6 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 32px;
+  font-family: 'Inter', Arial, sans-serif;
+}
+
+.daily-checkin-header {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 32px;
+  color: #222;
+}
+
+.daily-checkin-card {
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  padding: 32px 24px;
+  max-width: 90vw;
+  width: 370px;
+  margin-bottom: 48px;
+}
+
+.daily-checkin-text {
+  font-size: 1.5rem;
+  color: #333;
+  line-height: 1.4;
+}
+
+.daily-checkin-text .bold {
+  font-weight: 700;
+  margin-top: 16px;
+  color: #222;
+}
+
+.daily-checkin-actions {
+  display: flex;
+  gap: 32px;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+@media (max-width: 500px) {
+  .daily-checkin-card {
+    width: 95vw;
+    padding: 24px 8px;
+  }
+  .daily-checkin-header {
+    font-size: 1.2rem;
+  }
+  .daily-checkin-text {
+    font-size: 1.1rem;
+  }
+} 
