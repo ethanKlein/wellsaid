@@ -382,9 +382,7 @@ const VoiceRecording: React.FC = () => {
                 </svg>
               </button>
               <button className="next-btn" onClick={handleStop} disabled={isProcessing}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M9 18L15 12L9 6V18Z" fill="currentColor"/>
-                </svg>
+                Next
               </button>
             </div>
           )}

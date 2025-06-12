@@ -313,17 +313,13 @@ const Results: React.FC = () => {
                   ) : response.forYouTitle ? (
                     <h3>{response.forYouTitle}</h3>
                   ) : (
-                    <div className="streaming-text">
-                      <div className="loading-spinner-small"></div>
-                    </div>
+                    <div className="skeleton skeleton-title"></div>
                   )}
                   
                   {!shuffling.forYou && response.forYou ? (
                     <p>{response.forYou}</p>
                   ) : !shuffling.forYou && response.forYouTitle ? (
-                    <div className="streaming-text">
-                      <div className="loading-spinner-small"></div>
-                    </div>
+                    <div className="skeleton skeleton-text"></div>
                   ) : null}
                 </div>
                 <div className="card-icon">
@@ -383,17 +379,13 @@ const Results: React.FC = () => {
                   ) : response.forThemTitle ? (
                     <h3>{response.forThemTitle}</h3>
                   ) : (
-                    <div className="streaming-text">
-                      <div className="loading-spinner-small"></div>
-                    </div>
+                    <div className="skeleton skeleton-title"></div>
                   )}
                   
                   {!shuffling.forThem && response.forThem ? (
                     <p>{response.forThem}</p>
                   ) : !shuffling.forThem && response.forThemTitle ? (
-                    <div className="streaming-text">
-                      <div className="loading-spinner-small"></div>
-                    </div>
+                    <div className="skeleton skeleton-text"></div>
                   ) : null}
                 </div>
                 <div className="card-icon">
