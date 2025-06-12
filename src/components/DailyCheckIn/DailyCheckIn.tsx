@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import './DailyCheckIn.css';
 import Button from '../Button/Button';
+import BottomNav from '../BottomNav/BottomNav';
 
 const DailyCheckIn: React.FC = () => {
   const navigate = useNavigate();
@@ -29,6 +30,7 @@ const DailyCheckIn: React.FC = () => {
         <Button icon="🎤" label="Speak your thoughts" onClick={handleSpeakThoughts} />
         <Button icon="✏️" label="Write a response" onClick={handleWriteResponse} />
       </div>
+      <BottomNav />
     </div>
   );
 };

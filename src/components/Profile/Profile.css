@@ -1,0 +1,83 @@
+.profile-bg {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #fce7f3 0%, #fdf2f8 100%);
+  padding: 20px 20px 100px 20px;
+  font-family: 'Inter', Arial, sans-serif;
+}
+
+.profile-container {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.profile-header {
+  margin-bottom: 48px;
+  text-align: center;
+}
+
+.profile-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 12px 0;
+}
+
+.profile-header p {
+  font-size: 1rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.coming-soon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 50vh;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 16px;
+  padding: 40px 20px;
+}
+
+.coming-soon-icon {
+  font-size: 4rem;
+  margin-bottom: 16px;
+  opacity: 0.8;
+}
+
+.coming-soon h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 12px 0;
+}
+
+.coming-soon p {
+  font-size: 1rem;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.5;
+}
+
+@media (max-width: 500px) {
+  .profile-bg {
+    padding: 16px 16px 100px 16px;
+  }
+  
+  .profile-header h1 {
+    font-size: 1.75rem;
+  }
+  
+  .coming-soon-icon {
+    font-size: 3rem;
+  }
+  
+  .coming-soon h2 {
+    font-size: 1.25rem;
+  }
+  
+  .coming-soon p {
+    font-size: 0.9rem;
+  }
+}

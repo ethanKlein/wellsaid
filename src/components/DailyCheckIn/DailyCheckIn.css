@@ -1,10 +1,11 @@
 .daily-checkin-bg {
   min-height: 100vh;
-  background: linear-gradient(135deg, #ffd6c0 0%, #ffe7d6 100%);
+  background: linear-gradient(135deg, #FF9A73 0%, #FFB299 25%, #FFCCB3 50%, #F5F5F5 75%, #E8E8E8 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
   padding-top: 32px;
+  padding-bottom: 100px;
   font-family: 'Inter', Arial, sans-serif;
 }
 

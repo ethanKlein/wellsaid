@@ -1,0 +1,126 @@
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  padding: 12px 20px 20px 20px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 1000;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: color 0.2s ease;
+  padding: 8px 12px;
+  border-radius: 8px;
+  min-width: 60px;
+}
+
+.nav-item:hover {
+  color: #374151;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.nav-item:active {
+  transform: scale(0.95);
+}
+
+.nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+.nav-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.nav-item span {
+  font-family: 'Inter', Arial, sans-serif;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.fab {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #374151;
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(55, 65, 81, 0.3);
+  transition: all 0.2s ease;
+  position: relative;
+  top: -4px; /* Slightly raised */
+}
+
+.fab:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(55, 65, 81, 0.4);
+  background: #1f2937;
+}
+
+.fab:active {
+  transform: scale(0.95);
+}
+
+.fab svg {
+  width: 24px;
+  height: 24px;
+  stroke-width: 2.5;
+}
+
+/* Safe area for devices with notches/home indicators */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .bottom-nav {
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 480px) {
+  .bottom-nav {
+    padding: 10px 16px 16px 16px;
+  }
+  
+  .nav-item {
+    gap: 4px;
+    padding: 6px 8px;
+    min-width: 50px;
+  }
+  
+  .nav-item span {
+    font-size: 0.7rem;
+  }
+  
+  .fab {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .fab svg {
+    width: 20px;
+    height: 20px;
+  }
+} 
