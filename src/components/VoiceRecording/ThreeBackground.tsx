@@ -25,7 +25,6 @@ class AudioRibbon extends THREE.Mesh {
     // Create initial ribbon shape
     const segments = 50;
     const positions = new Float32Array(segments * 3);
-    const indices = [];
     
     for (let i = 0; i < segments; i++) {
       positions[i * 3] = (i / segments) * 2 - 1; // x
@@ -52,17 +51,15 @@ class AudioRibbon extends THREE.Mesh {
 }
 
 const ThreeBackground: React.FC<ThreeBackgroundProps> = ({ isRecording, audioStream }) => {
-  const mountRef = useRef<HTMLDivElement>(null);
-  const animationIdRef = useRef<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
-  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const audioRibbonRef = useRef<AudioRibbon | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const audioAnalyserRef = useRef<AnalyserNode | null>(null);
   const audioDataRef = useRef<Uint8Array | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  
-  // Audio ribbon system
-  const audioRibbonRef = useRef<AudioRibbon | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
 
   const updateRibbon = useCallback((dataArray: Uint8Array) => {
     if (!audioRibbonRef.current) return;
@@ -175,158 +172,59 @@ const ThreeBackground: React.FC<ThreeBackgroundProps> = ({ isRecording, audioStr
   };
 
   useEffect(() => {
-    console.log('ThreeBackground mounting...');
-    
-    if (!mountRef.current) {
-      console.error('Mount ref not available');
-      return;
-    }
-    const mountDiv = mountRef.current; // Capture for cleanup
+    if (!containerRef.current) return;
 
-    // Ensure any previous animation is stopped
-    if (animationIdRef.current) {
-      cancelAnimationFrame(animationIdRef.current);
-      animationIdRef.current = null;
-    }
-
-    // Get the actual size of the mount container
-    const container = mountRef.current;
-    const width = container.offsetWidth;
-    const height = container.offsetHeight;
-
-    // Scene setup
+    // Initialize Three.js scene
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    
-    renderer.setSize(width, height);
-    renderer.setClearColor(0x000000, 0);
-    
-    try {
-      // Clear any existing canvas first
-      const existingCanvas = mountRef.current.querySelector('canvas');
-      if (existingCanvas) {
-        mountRef.current.removeChild(existingCanvas);
-      }
-      
-      mountRef.current.appendChild(renderer.domElement);
-      console.log('Renderer added to DOM');
-    } catch (error) {
-      console.error('Failed to add renderer to DOM:', error);
-      return;
-    }
-
     sceneRef.current = scene;
-    rendererRef.current = renderer;
+
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.z = 5;
     cameraRef.current = camera;
 
-    // Position camera
-    camera.position.z = 6;
-    camera.position.y = 2; // Move camera up to push the ribbon down on screen
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    containerRef.current.appendChild(renderer.domElement);
+    rendererRef.current = renderer;
 
     // Create audio-responsive ribbon
     const audioRibbon = new AudioRibbon();
     audioRibbonRef.current = audioRibbon;
+    scene.add(audioRibbon);
 
-    // Simple lighting for the ribbon
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-    scene.add(ambientLight);
-    
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
-    directionalLight.position.set(1, 1, 1);
-    scene.add(directionalLight);
-
-    console.log('Scene setup complete, starting animation...');
-
-    // Animation state tracking
-    let isAnimating = true;
-
-    // Animation loop for ribbon
+    // Animation loop
     const animate = () => {
-      if (!isAnimating) {
-        console.log('Animation stopped');
-        return;
-      }
+      if (!sceneRef.current || !cameraRef.current || !rendererRef.current) return;
 
-      animationIdRef.current = requestAnimationFrame(animate);
-      
-      const time = Date.now() * 0.001; // Convert to seconds
-      
       // Get audio data and update ribbon
-      if (audioRibbonRef.current) {
-        audioRibbonRef.current.update(audioDataRef.current || new Uint8Array());
+      if (audioRibbonRef.current && audioDataRef.current) {
+        audioRibbonRef.current.update(audioDataRef.current);
       }
-      
-      // Debug: Log audio level occasionally
-      const audioLevel = getAudioLevel();
-      if (audioLevel > 0.02 && Math.floor(time * 2) % 10 === 0) {
-        console.log('Audio level:', audioLevel.toFixed(3), 'Ribbon active:', !!audioRibbonRef.current);
-      }
-      
-      try {
-        renderer.render(scene, camera);
-      } catch (error) {
-        console.error('Render error:', error);
-        isAnimating = false;
-      }
+
+      rendererRef.current.render(sceneRef.current, cameraRef.current);
+      animationFrameRef.current = requestAnimationFrame(animate);
     };
-    
-    // Start animation
+
     animate();
-    console.log('Animation started');
-
-    // Handle resize of the container
-    const handleResize = () => {
-      if (!mountRef.current) return;
-      const width = mountRef.current.offsetWidth;
-      const height = mountRef.current.offsetHeight;
-      if (camera && renderer) {
-        camera.aspect = width / height;
-        camera.updateProjectionMatrix();
-        renderer.setSize(width, height);
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
 
     // Cleanup function
     return () => {
-      console.log('Cleaning up ThreeBackground...');
-      
-      isAnimating = false;
-      
-      if (animationIdRef.current) {
-        cancelAnimationFrame(animationIdRef.current);
-        animationIdRef.current = null;
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
       }
-      
-      window.removeEventListener('resize', handleResize);
-      
-      // Clean up audio resources
-      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-        try {
-          audioContextRef.current.close();
-        } catch (error) {
-          console.error('Error closing audio context:', error);
-        }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
       }
-      
-      // Clean up ribbon
+      if (rendererRef.current && containerRef.current) {
+        containerRef.current.removeChild(rendererRef.current.domElement);
+        rendererRef.current.dispose();
+      }
       if (audioRibbonRef.current) {
-        audioRibbonRef.current = null;
+        audioRibbonRef.current.geometry.dispose();
+        (audioRibbonRef.current.material as THREE.Material).dispose();
       }
-      
-      if (mountDiv && renderer.domElement && mountDiv.contains(renderer.domElement)) {
-        try {
-          mountDiv.removeChild(renderer.domElement);
-        } catch (error) {
-          console.error('Error removing canvas:', error);
-        }
-      }
-      
-      renderer.dispose();
     };
-  }, []); // Only run once on mount
+  }, []);
 
   // Handle audio stream changes
   useEffect(() => {
@@ -351,7 +249,7 @@ const ThreeBackground: React.FC<ThreeBackgroundProps> = ({ isRecording, audioStr
 
   return (
     <div
-      ref={mountRef}
+      ref={containerRef}
       style={{
         width: '100%',
         height: '100%',

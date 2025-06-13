@@ -1,29 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './Results.css';
 import { getAIResponseStreaming, AIResponse, generateAIImages, AIImages, ActionItem, shuffleSectionStreaming } from '../../services/aiService';
 
 const Results: React.FC = () => {
   const location = useLocation();
-  const [transcript, setTranscript] = useState<string>(location.state?.transcript || '');
+  const [transcript] = useState<string>(location.state?.transcript || '');
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<Partial<AIResponse>>({});
   const [images, setImages] = useState<AIImages | null>(null);
   const [imagesLoading, setImagesLoading] = useState(false);
-  const [shuffling, setShuffling] = useState<{ forYou: boolean; forThem: boolean }>({ forYou: false, forThem: false });
+  const [shuffleForYou, setShuffleForYou] = useState(false);
+  const [shuffleForThem, setShuffleForThem] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<any>(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
+  const fetchAIResponse = useCallback(async () => {
     if (!transcript) {
       setError('No transcript available - please record your voice first');
       return;
     }
-    fetchAIResponse();
-  }, [transcript]);
-
-  const fetchAIResponse = async () => {
     console.log('Results page loaded with transcript:', transcript);
     console.log('Transcript length:', transcript?.length || 0);
     
@@ -89,7 +86,15 @@ const Results: React.FC = () => {
       });
       setLoading(false);
     }
-  };
+  }, [transcript]);
+
+  useEffect(() => {
+    if (!transcript) {
+      setError('No transcript available - please record your voice first');
+      return;
+    }
+    fetchAIResponse();
+  }, [transcript, fetchAIResponse]);
 
   const handleShuffle = async (section: 'forYou' | 'forThem') => {
     if (!transcript) {
@@ -99,7 +104,11 @@ const Results: React.FC = () => {
 
     try {
       console.log(`Streaming shuffle for ${section} section`);
-      setShuffling(prev => ({ ...prev, [section]: true }));
+      if (section === 'forYou') {
+        setShuffleForYou(true);
+      } else {
+        setShuffleForThem(true);
+      }
       
       // Use streaming shuffle for progressive loading
       const finalShuffledContent = await shuffleSectionStreaming(transcript, section, (partialContent) => {
@@ -173,7 +182,11 @@ const Results: React.FC = () => {
       console.error(`Error shuffling ${section}:`, error);
       setError(`Failed to shuffle ${section}: ${error.message}`);
     } finally {
-      setShuffling(prev => ({ ...prev, [section]: false }));
+      if (section === 'forYou') {
+        setShuffleForYou(false);
+      } else {
+        setShuffleForThem(false);
+      }
     }
   };
 
@@ -295,16 +308,16 @@ const Results: React.FC = () => {
           <div className="suggestions-section">
             <div className="section-header">
               <h2>For You</h2>
-              <button className="shuffle-btn" onClick={() => handleShuffle('forYou')} disabled={shuffling.forYou}>
+              <button className="shuffle-btn" onClick={() => handleShuffle('forYou')} disabled={shuffleForYou}>
                 <span className="shuffle-icon">⟲</span>
-                {shuffling.forYou ? 'Shuffling...' : 'Shuffle'}
+                {shuffleForYou ? 'Shuffling...' : 'Shuffle'}
               </button>
             </div>
             
             <div className="suggestion-card for-you">
               <div className="card-content">
                 <div className="card-text">
-                  {shuffling.forYou ? (
+                  {shuffleForYou ? (
                     <div className="streaming-text">
                       <div className="loading-spinner-small"></div>
                       <span>Getting new suggestion...</span>
@@ -315,9 +328,9 @@ const Results: React.FC = () => {
                     <div className="skeleton skeleton-title"></div>
                   )}
                   
-                  {!shuffling.forYou && response.forYou ? (
+                  {!shuffleForYou && response.forYou ? (
                     <p>{response.forYou}</p>
-                  ) : !shuffling.forYou && response.forYouTitle ? (
+                  ) : !shuffleForYou && response.forYouTitle ? (
                     <div className="skeleton skeleton-text"></div>
                   ) : null}
                 </div>
@@ -347,7 +360,7 @@ const Results: React.FC = () => {
                   </div>
                 </div>
               </div>
-              {!shuffling.forYou && response.forYouAction && (
+              {!shuffleForYou && response.forYouAction && (
                 <button className="action-button" onClick={() => handleActionClick(response.forYouAction!)}>
                   {response.forYouAction.displayText} →
                 </button>
@@ -361,16 +374,16 @@ const Results: React.FC = () => {
           <div className="suggestions-section">
             <div className="section-header">
               <h2>For Them</h2>
-              <button className="shuffle-btn" onClick={() => handleShuffle('forThem')} disabled={shuffling.forThem}>
+              <button className="shuffle-btn" onClick={() => handleShuffle('forThem')} disabled={shuffleForThem}>
                 <span className="shuffle-icon">⟲</span>
-                {shuffling.forThem ? 'Shuffling...' : 'Shuffle'}
+                {shuffleForThem ? 'Shuffling...' : 'Shuffle'}
               </button>
             </div>
             
             <div className="suggestion-card for-them">
               <div className="card-content">
                 <div className="card-text">
-                  {shuffling.forThem ? (
+                  {shuffleForThem ? (
                     <div className="streaming-text">
                       <div className="loading-spinner-small"></div>
                       <span>Getting new suggestion...</span>
@@ -381,9 +394,9 @@ const Results: React.FC = () => {
                     <div className="skeleton skeleton-title"></div>
                   )}
                   
-                  {!shuffling.forThem && response.forThem ? (
+                  {!shuffleForThem && response.forThem ? (
                     <p>{response.forThem}</p>
-                  ) : !shuffling.forThem && response.forThemTitle ? (
+                  ) : !shuffleForThem && response.forThemTitle ? (
                     <div className="skeleton skeleton-text"></div>
                   ) : null}
                 </div>
@@ -413,7 +426,7 @@ const Results: React.FC = () => {
                   </div>
                 </div>
               </div>
-              {!shuffling.forThem && response.forThemAction && (
+              {!shuffleForThem && response.forThemAction && (
                 <button className="action-button" onClick={() => handleActionClick(response.forThemAction!)}>
                   {response.forThemAction.displayText} →
                 </button>

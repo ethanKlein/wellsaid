@@ -26,13 +26,12 @@ const VoiceRecording: React.FC = () => {
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const initializeSpeechRecognition = useCallback(() => {
+    if (!('webkitSpeechRecognition' in window)) {
+      console.error('Speech recognition not supported');
+      return;
+    }
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     
-    if (!SpeechRecognition) {
-      console.warn('Speech recognition not supported in this browser');
-      return null;
-    }
-
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
@@ -90,7 +89,7 @@ const VoiceRecording: React.FC = () => {
     };
 
     return recognition;
-  }, []);
+  }, [isPaused, isProcessing, isRecording]);
 
   const autoStop = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
