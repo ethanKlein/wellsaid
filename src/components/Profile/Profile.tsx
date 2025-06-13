@@ -1,5 +1,4 @@
 import React from 'react';
-import BottomNav from '../BottomNav/BottomNav';
 import './Profile.css';
 
 const Profile: React.FC = () => {
@@ -17,7 +16,6 @@ const Profile: React.FC = () => {
           <p>Your profile settings and preferences will appear here.</p>
         </div>
       </div>
-      <BottomNav />
     </div>
   );
 };

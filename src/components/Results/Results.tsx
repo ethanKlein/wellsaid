@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './Results.css';
 import { getAIResponseStreaming, AIResponse, generateAIImages, AIImages, ActionItem, shuffleSectionStreaming } from '../../services/aiService';
-import BottomNav from '../BottomNav/BottomNav';
 
 const Results: React.FC = () => {
   const navigate = useNavigate();
@@ -68,18 +67,17 @@ const Results: React.FC = () => {
         if (finalResponse.forYouTitle && finalResponse.forThemTitle) {
           setImagesLoading(true);
           try {
-            console.log('Starting image generation...');
             const aiImages = await generateAIImages(
               finalResponse.forYouTitle,
               finalResponse.forYou,
               finalResponse.forThemTitle,
               finalResponse.forThem
             );
-            console.log('Images generated:', aiImages);
             setImages(aiImages);
           } catch (imgError: any) {
+            // Fail silently: log the error, but do not set global error state
             console.error('Image generation failed:', imgError);
-            setError(`Image generation failed: ${imgError.message}`);
+            setImages({ forYouImage: '', forThemImage: '' }); // Optionally set empty images
           } finally {
             setImagesLoading(false);
           }
@@ -146,7 +144,12 @@ const Results: React.FC = () => {
             forThemImage: prev?.forThemImage || ''
           }));
         } catch (imgError) {
+          // Fail silently
           console.error('Failed to regenerate For You image:', imgError);
+          setImages(prev => ({
+            forYouImage: '',
+            forThemImage: prev?.forThemImage || ''
+          }));
         } finally {
           setImagesLoading(false);
         }
@@ -164,7 +167,12 @@ const Results: React.FC = () => {
             forThemImage: newImages.forThemImage
           }));
         } catch (imgError) {
+          // Fail silently
           console.error('Failed to regenerate For Them image:', imgError);
+          setImages(prev => ({
+            forYouImage: prev?.forYouImage || '',
+            forThemImage: ''
+          }));
         } finally {
           setImagesLoading(false);
         }
@@ -423,8 +431,6 @@ const Results: React.FC = () => {
           </div>
         )}
       </div>
-
-      <BottomNav />
     </div>
   );
 };

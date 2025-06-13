@@ -1,5 +1,4 @@
 import React from 'react';
-import BottomNav from '../BottomNav/BottomNav';
 import './ActionItems.css';
 
 const ActionItems: React.FC = () => {
@@ -17,7 +16,6 @@ const ActionItems: React.FC = () => {
           <p>Your action items and recommendations will appear here.</p>
         </div>
       </div>
-      <BottomNav />
     </div>
   );
 };

@@ -1,0 +1,50 @@
+html, body {
+  overflow-y: hidden;
+  height: 100%;
+}
+
+.mobile-frame-bg {
+  min-height: 100vh;
+  background: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+.iphone-frame {
+  width: 554px;
+  height: 1100px;
+  background: #fff;
+  border-radius: 48px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+  position: relative;
+  overflow: auto; /* Allow scrolling within the frame */
+  border: 8px solid #222;
+  display: flex;
+  flex-direction: column;
+}
+
+.iphone-notch {
+  width: 120px;
+  height: 30px;
+  background: #222;
+  border-radius: 0 0 24px 24px;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+}
+
+@media (max-width: 430px) {
+  .iphone-frame {
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+    border-width: 0;
+  }
+  .mobile-frame-bg {
+    padding: 0;
+  }
+} 

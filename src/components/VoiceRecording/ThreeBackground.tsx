@@ -18,8 +18,8 @@ class AudioRibbon {
   
   // Ribbon parameters
   private segments = 200; // Number of segments along the ribbon
-  private width = 0.4; // Ribbon width
-  private length = 16; // Total ribbon length (wider than screen)
+  private width = 1.2; // Ribbon width (much thicker)
+  private length = 32; // Total ribbon length (much wider)
   
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -347,12 +347,17 @@ const ThreeBackground: React.FC<ThreeBackgroundProps> = ({ isRecording, audioStr
       animationIdRef.current = null;
     }
 
+    // Get the actual size of the mount container
+    const container = mountRef.current;
+    const width = container.offsetWidth;
+    const height = container.offsetHeight;
+
     // Scene setup
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(width, height);
     renderer.setClearColor(0x000000, 0);
     
     try {
@@ -374,7 +379,7 @@ const ThreeBackground: React.FC<ThreeBackgroundProps> = ({ isRecording, audioStr
     cameraRef.current = camera;
 
     // Position camera
-    camera.position.z = 8;
+    camera.position.z = 6;
     camera.position.y = 2; // Move camera up to push the ribbon down on screen
 
     // Create audio-responsive ribbon
@@ -434,12 +439,15 @@ const ThreeBackground: React.FC<ThreeBackgroundProps> = ({ isRecording, audioStr
     animate();
     console.log('Animation started');
 
-    // Handle window resize
+    // Handle resize of the container
     const handleResize = () => {
+      if (!mountRef.current) return;
+      const width = mountRef.current.offsetWidth;
+      const height = mountRef.current.offsetHeight;
       if (camera && renderer) {
-        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.aspect = width / height;
         camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setSize(width, height);
       }
     };
 
@@ -510,13 +518,9 @@ const ThreeBackground: React.FC<ThreeBackgroundProps> = ({ isRecording, audioStr
     <div
       ref={mountRef}
       style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
         width: '100%',
         height: '100%',
-        zIndex: -1,
-        background: 'linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%)',
+        background: 'transparent',
         pointerEvents: 'none', // Disable interaction for ribbon
       }}
     />

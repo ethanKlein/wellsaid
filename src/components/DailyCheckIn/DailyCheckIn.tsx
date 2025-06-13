@@ -2,7 +2,6 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import './DailyCheckIn.css';
 import Button from '../Button/Button';
-import BottomNav from '../BottomNav/BottomNav';
 
 const DailyCheckIn: React.FC = () => {
   const navigate = useNavigate();
@@ -43,7 +42,6 @@ So… I'm tired. Like soul-tired. But I'm also… weirdly proud? I kept everyone
         <Button icon="✏️" label="Write a response" onClick={handleWriteResponse} />
         <Button icon="🧪" label="Test Results Page" onClick={handleTestResults} />
       </div>
-      <BottomNav />
     </div>
   );
 };

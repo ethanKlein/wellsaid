@@ -336,10 +336,6 @@ const VoiceRecording: React.FC = () => {
 
   return (
     <div className="voice-recording-bg">
-      <ThreeBackground 
-        isRecording={isRecording} 
-        audioStream={streamRef.current || undefined} 
-      />
       <div className="voice-recording-content">
         <div className="voice-recording-header">Daily Check-in</div>
         <div className="voice-recording-card">
@@ -387,6 +383,15 @@ const VoiceRecording: React.FC = () => {
             </div>
           )}
         </div>
+        {/* Visualizer directly after the pause button, in flow */}
+        {!(isPaused && displayTranscript) && (
+          <div className="voice-visualizer-abs">
+            <ThreeBackground 
+              isRecording={isRecording} 
+              audioStream={streamRef.current || undefined} 
+            />
+          </div>
+        )}
       </div>
     </div>
   );
