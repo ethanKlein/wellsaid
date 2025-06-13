@@ -86,7 +86,7 @@ const Results: React.FC = () => {
       });
       setLoading(false);
     }
-  }, [transcript]);
+  }, [transcript, loading]);
 
   useEffect(() => {
     if (!transcript) {

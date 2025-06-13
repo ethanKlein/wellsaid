@@ -3,6 +3,28 @@ import './VoiceRecording.css';
 import { useNavigate } from 'react-router-dom';
 import ThreeBackground from './ThreeBackground';
 
+// Add type declarations for Web Speech API
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+  resultIndex: number;
+}
+
+interface SpeechRecognitionResultList {
+  [index: number]: SpeechRecognitionResult;
+  length: number;
+}
+
+interface SpeechRecognitionResult {
+  [index: number]: SpeechRecognitionAlternative;
+  isFinal: boolean;
+  length: number;
+}
+
+interface SpeechRecognitionAlternative {
+  transcript: string;
+  confidence: number;
+}
+
 declare global {
   interface Window {
     SpeechRecognition: any;
@@ -25,72 +47,6 @@ const VoiceRecording: React.FC = () => {
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const initializeSpeechRecognition = useCallback(() => {
-    if (!('webkitSpeechRecognition' in window)) {
-      console.error('Speech recognition not supported');
-      return;
-    }
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = 'en-US';
-
-    recognition.onresult = (event: any) => {
-      let finalTranscript = '';
-      let interimText = '';
-
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        if (result.isFinal) {
-          finalTranscript += result[0].transcript + ' ';
-        } else {
-          interimText += result[0].transcript;
-        }
-      }
-
-      if (finalTranscript) {
-        setTranscript(prev => prev + finalTranscript);
-        console.log('Final transcript added:', finalTranscript);
-      }
-      setInterimTranscript(interimText);
-      
-      // Reset silence timer whenever we get speech results
-      if (finalTranscript || interimText) {
-        resetSilenceTimer();
-      }
-    };
-
-    recognition.onerror = (event: any) => {
-      console.error('Speech recognition error:', event.error);
-    };
-
-    recognition.onend = () => {
-      console.log('Speech recognition ended');
-      // If recording is still active and not paused, restart recognition
-      if (isRecording && !isPaused && !isProcessing) {
-        console.log('Restarting speech recognition...');
-        setTimeout(() => {
-          if (recognitionRef.current && isRecording && !isPaused) {
-            try {
-              recognitionRef.current.start();
-            } catch (error) {
-              console.log('Recognition restart failed:', error);
-            }
-          }
-        }, 100);
-      }
-    };
-
-    recognition.onstart = () => {
-      console.log('Speech recognition started');
-      resetSilenceTimer();
-    };
-
-    return recognition;
-  }, [isPaused, isProcessing, isRecording]);
-
   const autoStop = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
@@ -111,6 +67,28 @@ const VoiceRecording: React.FC = () => {
       }
     }, 3000);
   }, [isRecording, autoStop]);
+
+  const initializeSpeechRecognition = useCallback(() => {
+    if (!('webkitSpeechRecognition' in window)) {
+      console.error('Speech recognition not supported');
+      return;
+    }
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      const transcript = Array.from(event.results)
+        .map(result => (result as SpeechRecognitionResult)[0].transcript)
+        .join('');
+      setTranscript(transcript);
+      resetSilenceTimer();
+    };
+    
+    return recognition;
+  }, [isPaused, isProcessing, isRecording, resetSilenceTimer]);
 
   useEffect(() => {
     const startRecording = async () => {

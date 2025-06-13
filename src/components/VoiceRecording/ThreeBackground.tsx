@@ -207,21 +207,27 @@ const ThreeBackground: React.FC<ThreeBackgroundProps> = ({ isRecording, audioStr
 
     animate();
 
+    // Store refs in local variables for cleanup
+    const currentAudioContext = audioContextRef.current;
+    const currentContainer = containerRef.current;
+    const currentRenderer = rendererRef.current;
+    const currentAudioRibbon = audioRibbonRef.current;
+
     // Cleanup function
     return () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
+      if (currentAudioContext) {
+        currentAudioContext.close();
       }
-      if (rendererRef.current && containerRef.current) {
-        containerRef.current.removeChild(rendererRef.current.domElement);
-        rendererRef.current.dispose();
+      if (currentRenderer && currentContainer) {
+        currentContainer.removeChild(currentRenderer.domElement);
+        currentRenderer.dispose();
       }
-      if (audioRibbonRef.current) {
-        audioRibbonRef.current.geometry.dispose();
-        (audioRibbonRef.current.material as THREE.Material).dispose();
+      if (currentAudioRibbon) {
+        currentAudioRibbon.geometry.dispose();
+        (currentAudioRibbon.material as THREE.Material).dispose();
       }
     };
   }, []);
