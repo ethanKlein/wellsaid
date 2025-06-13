@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './VoiceRecording.css';
 import { useNavigate } from 'react-router-dom';
 import ThreeBackground from './ThreeBackground';
@@ -25,69 +25,7 @@ const VoiceRecording: React.FC = () => {
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    const startRecording = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        streamRef.current = stream;
-        
-        const mediaRecorder = new MediaRecorder(stream);
-        mediaRecorderRef.current = mediaRecorder;
-        
-        const chunks: Blob[] = [];
-        
-        mediaRecorder.ondataavailable = (event) => {
-          if (event.data.size > 0) {
-            chunks.push(event.data);
-            setRecordedChunks([...chunks]);
-          }
-        };
-        
-        mediaRecorder.onstop = () => {
-          const blob = new Blob(chunks, { type: 'audio/webm' });
-          console.log('Recording stopped, audio blob created:', blob);
-        };
-        
-        mediaRecorder.start(100);
-        setIsRecording(true);
-        
-        // Start speech recognition
-        const recognition = initializeSpeechRecognition();
-        if (recognition) {
-          recognitionRef.current = recognition;
-          recognition.start();
-          console.log('Speech recognition started');
-        }
-        
-        console.log('Recording started');
-        
-        // Start the silence timer
-        resetSilenceTimer();
-        
-      } catch (error) {
-        console.error('Error accessing microphone:', error);
-        alert('Unable to access microphone. Please allow microphone permissions and try again.');
-      }
-    };
-    startRecording();
-    return () => {
-      // Cleanup when component unmounts
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      if (silenceTimerRef.current) {
-        clearTimeout(silenceTimerRef.current);
-      }
-    };
-  }, []);
-
-  const initializeSpeechRecognition = () => {
+  const initializeSpeechRecognition = useCallback(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     
     if (!SpeechRecognition) {
@@ -152,32 +90,95 @@ const VoiceRecording: React.FC = () => {
     };
 
     return recognition;
-  };
+  }, []);
 
-  const autoStop = () => {
-    const finalTranscript = transcript + interimTranscript;
-    
-    // Only auto-stop if we have some meaningful transcript
-    if (finalTranscript.trim().length > 10) {
-      console.log('Auto-stopping due to silence with transcript:', finalTranscript);
-      handleStop();
-    } else {
-      console.log('Not enough transcript to auto-stop, continuing recording');
+  const autoStop = useCallback(() => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
     }
-  };
+  }, [isRecording]);
 
-  const resetSilenceTimer = () => {
-    // Clear existing timer
+  const resetSilenceTimer = useCallback(() => {
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
     }
-    
-    // Set new timer for 3 seconds of silence
     silenceTimerRef.current = setTimeout(() => {
-      console.log('Silence detected, auto-stopping...');
-      autoStop();
+      if (isRecording) {
+        autoStop();
+      }
     }, 3000);
-  };
+  }, [isRecording, autoStop]);
+
+  useEffect(() => {
+    const startRecording = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        streamRef.current = stream;
+        
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = mediaRecorder;
+        
+        const chunks: Blob[] = [];
+        
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            chunks.push(event.data);
+            setRecordedChunks([...chunks]);
+          }
+        };
+        
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(chunks, { type: 'audio/webm' });
+          console.log('Recording stopped, audio blob created:', blob);
+        };
+        
+        mediaRecorder.start(100);
+        setIsRecording(true);
+        
+        // Start speech recognition
+        const recognition = initializeSpeechRecognition();
+        if (recognition) {
+          recognitionRef.current = recognition;
+          recognition.start();
+          console.log('Speech recognition started');
+        }
+        
+        console.log('Recording started');
+        
+        // Start the silence timer
+        resetSilenceTimer();
+        
+      } catch (error) {
+        console.error('Error accessing microphone:', error);
+        alert('Unable to access microphone. Please allow microphone permissions and try again.');
+      }
+    };
+    startRecording();
+    return () => {
+      // Cleanup when component unmounts
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+      }
+    };
+  }, [initializeSpeechRecognition, resetSilenceTimer]);
+
+  useEffect(() => {
+    initializeSpeechRecognition();
+    resetSilenceTimer();
+  }, [initializeSpeechRecognition, resetSilenceTimer]);
 
   const handlePause = () => {
     if (mediaRecorderRef.current && isRecording && !isPaused) {

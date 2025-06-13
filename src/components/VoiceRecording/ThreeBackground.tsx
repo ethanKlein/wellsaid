@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import * as THREE from 'three';
 
 interface ThreeBackgroundProps {
@@ -7,185 +7,47 @@ interface ThreeBackgroundProps {
 }
 
 // Audio-responsive ribbon system
-class AudioRibbon {
-  private geometry!: THREE.BufferGeometry;
-  private material!: THREE.ShaderMaterial;
-  private mesh!: THREE.Mesh;
-  private scene: THREE.Scene;
-  private points: THREE.Vector3[] = [];
-  private audioData: number[] = [];
-  private time: number = 0;
+class AudioRibbon extends THREE.Mesh {
+  public geometry: THREE.BufferGeometry;
   
-  // Ribbon parameters
-  private segments = 200; // Number of segments along the ribbon
-  private width = 1.2; // Ribbon width (much thicker)
-  private length = 32; // Total ribbon length (much wider)
-  
-  constructor(scene: THREE.Scene) {
-    this.scene = scene;
-    this.createRibbon();
-  }
-  
-  private createRibbon() {
-    // Create ribbon geometry
-    this.geometry = new THREE.BufferGeometry();
-    
-    // Create custom shader material for gradient effect
-    this.material = new THREE.ShaderMaterial({
-      uniforms: {
-        time: { value: 0 },
-        audioData: { value: new Float32Array(this.segments) },
-        colorStart: { value: new THREE.Color(0x6366f1) }, // Indigo
-        colorEnd: { value: new THREE.Color(0xec4899) }, // Pink
-        opacity: { value: 0.9 }
-      },
-      vertexShader: `
-        uniform float time;
-        uniform float audioData[${this.segments}];
-        varying vec2 vUv;
-        varying float vAudioLevel;
-        
-        void main() {
-          vUv = uv;
-          
-          // Get audio data for this segment
-          int segmentIndex = int(floor(uv.x * ${this.segments.toFixed(1)}));
-          segmentIndex = clamp(segmentIndex, 0, ${this.segments - 1});
-          float audioLevel = audioData[segmentIndex];
-          vAudioLevel = audioLevel;
-          
-          // Create gentle wave motion
-          float wave1 = sin(position.x * 0.3 + time * 2.0) * 0.2;
-          float wave2 = sin(position.x * 0.5 + time * 1.5) * 0.15;
-          
-          // Audio-reactive displacement (vertical movement) - increased sensitivity
-          float audioDisplacement = audioLevel * 2.5;
-          
-          vec3 newPosition = position;
-          newPosition.y += wave1 + wave2 + audioDisplacement;
-          
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform vec3 colorStart;
-        uniform vec3 colorEnd;
-        uniform float opacity;
-        varying vec2 vUv;
-        varying float vAudioLevel;
-        
-        void main() {
-          // Create gradient along the ribbon
-          vec3 color = mix(colorStart, colorEnd, vUv.x);
-          
-          // Add audio-reactive brightness - increased sensitivity
-          color += vAudioLevel * 0.5;
-          
-          // Sharper edge fade for crisp edges
-          float edgeFade = 1.0 - abs(vUv.y - 0.5) * 2.0;
-          edgeFade = smoothstep(0.1, 0.9, edgeFade);
-          
-          gl_FragColor = vec4(color, opacity * edgeFade);
-        }
-      `,
-      transparent: true,
+  constructor() {
+    const geometry = new THREE.BufferGeometry();
+    const material = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
       side: THREE.DoubleSide,
-      blending: THREE.NormalBlending, // Keep normal blending for crisp appearance
-      depthWrite: false
+      transparent: true,
+      opacity: 0.8
     });
     
-    // Generate straight ribbon geometry
-    this.generateStraightRibbonGeometry();
+    super(geometry, material);
+    this.geometry = geometry;
     
-    // Create mesh
-    this.mesh = new THREE.Mesh(this.geometry, this.material);
-    this.scene.add(this.mesh);
-  }
-  
-  private generateStraightRibbonGeometry() {
-    const vertices: number[] = [];
-    const uvs: number[] = [];
-    const indices: number[] = [];
+    // Create initial ribbon shape
+    const segments = 50;
+    const positions = new Float32Array(segments * 3);
+    const indices = [];
     
-    // Generate straight ribbon strip
-    for (let i = 0; i <= this.segments; i++) {
-      const x = (i / this.segments) * this.length - this.length / 2;
-      const u = i / this.segments;
-      
-      // Top vertex
-      vertices.push(x, this.width / 2, 0);
-      uvs.push(u, 1);
-      
-      // Bottom vertex
-      vertices.push(x, -this.width / 2, 0);
-      uvs.push(u, 0);
-      
-      // Create triangles (except for last segment)
-      if (i < this.segments) {
-        const base = i * 2;
-        
-        // First triangle
-        indices.push(base, base + 1, base + 2);
-        // Second triangle
-        indices.push(base + 1, base + 3, base + 2);
-      }
+    for (let i = 0; i < segments; i++) {
+      positions[i * 3] = (i / segments) * 2 - 1; // x
+      positions[i * 3 + 1] = 0; // y
+      positions[i * 3 + 2] = 0; // z
     }
     
-    this.geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-    this.geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-    this.geometry.setIndex(indices);
-    this.geometry.computeVertexNormals();
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.computeVertexNormals();
   }
   
-  updateAudio(audioData: Uint8Array) {
-    if (!audioData || audioData.length === 0) {
-      // No audio - create gentle baseline wave
-      for (let i = 0; i < this.segments; i++) {
-        this.audioData[i] = 0.05 + Math.sin(i * 0.2 + this.time * 1.5) * 0.03;
-      }
-    } else {
-      // Process audio data with better distribution
-      for (let i = 0; i < this.segments; i++) {
-        // Map each segment to the full frequency range for better distribution
-        const frequencyIndex = Math.floor((i / this.segments) * audioData.length);
-        const clampedIndex = Math.min(frequencyIndex, audioData.length - 1);
-        
-        // Get the raw audio value
-        let audioValue = (audioData[clampedIndex] || 0) / 255.0;
-        
-        // Also blend with neighboring frequencies for smoother response
-        const prevIndex = Math.max(0, clampedIndex - 1);
-        const nextIndex = Math.min(audioData.length - 1, clampedIndex + 1);
-        const prevValue = (audioData[prevIndex] || 0) / 255.0;
-        const nextValue = (audioData[nextIndex] || 0) / 255.0;
-        
-        // Average with neighbors for smoother distribution
-        audioValue = (prevValue + audioValue * 2 + nextValue) / 4;
-        
-        // Apply sensitivity boost
-        audioValue = Math.pow(audioValue, 0.7) * 1.5; // Power curve + amplification
-        
-        this.audioData[i] = Math.min(1.0, audioValue);
-      }
+  update(dataArray: Uint8Array) {
+    const positions = this.geometry.attributes.position.array as Float32Array;
+    const segments = positions.length / 3;
+    
+    for (let i = 0; i < segments; i++) {
+      const index = Math.floor((i / segments) * dataArray.length);
+      const amplitude = dataArray[index] / 128.0;
+      positions[i * 3 + 1] = amplitude * 2;
     }
     
-    // Update shader uniform
-    this.material.uniforms.audioData.value = new Float32Array(this.audioData);
-  }
-  
-  update(time: number) {
-    this.time = time;
-    this.material.uniforms.time.value = time;
-    
-    // Remove rotation - keep the ribbon stationary
-    // this.mesh.rotation.z = Math.sin(time * 0.2) * 0.1;
-    // this.mesh.rotation.y = time * 0.1;
-  }
-  
-  dispose() {
-    this.scene.remove(this.mesh);
-    this.geometry.dispose();
-    this.material.dispose();
+    this.geometry.attributes.position.needsUpdate = true;
   }
 }
 
@@ -202,7 +64,11 @@ const ThreeBackground: React.FC<ThreeBackgroundProps> = ({ isRecording, audioStr
   // Audio ribbon system
   const audioRibbonRef = useRef<AudioRibbon | null>(null);
 
-  // Test function to verify audio stream is working
+  const updateRibbon = useCallback((dataArray: Uint8Array) => {
+    if (!audioRibbonRef.current) return;
+    audioRibbonRef.current.update(dataArray);
+  }, []);
+
   const testAudioStream = (stream: MediaStream) => {
     console.log('Testing audio stream:', {
       active: stream.active,
@@ -246,50 +112,35 @@ const ThreeBackground: React.FC<ThreeBackgroundProps> = ({ isRecording, audioStr
     }
   };
 
-  // Setup audio analysis
-  const setupAudioAnalysis = (stream: MediaStream) => {
-    try {
-      console.log('Setting up audio analysis...', { streamActive: stream.active, tracks: stream.getTracks().length });
+  const setupAudioAnalysis = useCallback(() => {
+    if (!audioStream) return;
+    
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const analyser = audioContext.createAnalyser();
+    const source = audioContext.createMediaStreamSource(audioStream);
+    
+    source.connect(analyser);
+    analyser.fftSize = 256;
+    
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    
+    const updateVisualizer = () => {
+      if (!isRecording) return;
       
-      // Test the stream first
-      testAudioStream(stream);
-      
-      // Clean up any existing audio context
-      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-        audioContextRef.current.close();
-      }
-      
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const source = audioContext.createMediaStreamSource(stream);
-      const analyser = audioContext.createAnalyser();
-      
-      // More sensitive settings for better audio detection
-      analyser.fftSize = 1024; // Increased for better frequency resolution
-      analyser.smoothingTimeConstant = 0.3; // Less smoothing for more responsive
-      analyser.minDecibels = -100; // Lower threshold
-      analyser.maxDecibels = -10;
-      
-      source.connect(analyser);
-      audioAnalyserRef.current = analyser;
-      audioDataRef.current = new Uint8Array(analyser.frequencyBinCount);
-      audioContextRef.current = audioContext;
-      
-      // Resume audio context if it's suspended (required by some browsers)
-      if (audioContext.state === 'suspended') {
-        audioContext.resume().then(() => {
-          console.log('Audio context resumed');
-        });
-      }
-      
-      console.log('Audio analysis setup complete', {
-        fftSize: analyser.fftSize,
-        frequencyBinCount: analyser.frequencyBinCount,
-        contextState: audioContext.state
-      });
-    } catch (error) {
-      console.error('Failed to setup audio analysis:', error);
+      analyser.getByteFrequencyData(dataArray);
+      updateRibbon(dataArray);
+      requestAnimationFrame(updateVisualizer);
+    };
+    
+    updateVisualizer();
+  }, [audioStream, isRecording, updateRibbon]);
+
+  useEffect(() => {
+    if (audioStream && isRecording) {
+      setupAudioAnalysis();
     }
-  };
+  }, [audioStream, isRecording, setupAudioAnalysis]);
 
   // Get audio level with better sensitivity
   const getAudioLevel = () => {
@@ -374,7 +225,7 @@ const ThreeBackground: React.FC<ThreeBackgroundProps> = ({ isRecording, audioStr
     camera.position.y = 2; // Move camera up to push the ribbon down on screen
 
     // Create audio-responsive ribbon
-    const audioRibbon = new AudioRibbon(scene);
+    const audioRibbon = new AudioRibbon();
     audioRibbonRef.current = audioRibbon;
 
     // Simple lighting for the ribbon
@@ -386,11 +237,6 @@ const ThreeBackground: React.FC<ThreeBackgroundProps> = ({ isRecording, audioStr
     scene.add(directionalLight);
 
     console.log('Scene setup complete, starting animation...');
-
-    // Setup audio analysis if stream is available
-    if (audioStream && isRecording) {
-      setupAudioAnalysis(audioStream);
-    }
 
     // Animation state tracking
     let isAnimating = true;
@@ -408,8 +254,7 @@ const ThreeBackground: React.FC<ThreeBackgroundProps> = ({ isRecording, audioStr
       
       // Get audio data and update ribbon
       if (audioRibbonRef.current) {
-        audioRibbonRef.current.updateAudio(audioDataRef.current || new Uint8Array());
-        audioRibbonRef.current.update(time);
+        audioRibbonRef.current.update(audioDataRef.current || new Uint8Array());
       }
       
       // Debug: Log audio level occasionally
@@ -468,7 +313,6 @@ const ThreeBackground: React.FC<ThreeBackgroundProps> = ({ isRecording, audioStr
       
       // Clean up ribbon
       if (audioRibbonRef.current) {
-        audioRibbonRef.current.dispose();
         audioRibbonRef.current = null;
       }
       
@@ -501,7 +345,7 @@ const ThreeBackground: React.FC<ThreeBackgroundProps> = ({ isRecording, audioStr
     // Set up audio analysis if we have a stream and are recording
     if (audioStream && isRecording) {
       console.log('Setting up audio analysis from useEffect...');
-      setupAudioAnalysis(audioStream);
+      setupAudioAnalysis();
     }
   }, [audioStream, isRecording, setupAudioAnalysis]);
 

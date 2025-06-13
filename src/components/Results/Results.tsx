@@ -4,101 +4,92 @@ import './Results.css';
 import { getAIResponseStreaming, AIResponse, generateAIImages, AIImages, ActionItem, shuffleSectionStreaming } from '../../services/aiService';
 
 const Results: React.FC = () => {
-  const navigate = useNavigate();
   const location = useLocation();
-  const transcript = location.state?.transcript || '';
-  
+  const [transcript, setTranscript] = useState<string>(location.state?.transcript || '');
+  const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<Partial<AIResponse>>({});
   const [images, setImages] = useState<AIImages | null>(null);
-  const [loading, setLoading] = useState(true);
   const [imagesLoading, setImagesLoading] = useState(false);
   const [shuffling, setShuffling] = useState<{ forYou: boolean; forThem: boolean }>({ forYou: false, forThem: false });
   const [error, setError] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<any>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchAIResponse = async () => {
-      console.log('Results page loaded with transcript:', transcript);
-      console.log('Transcript length:', transcript?.length || 0);
-      
-      if (!transcript) {
-        setError('No transcript available - please record your voice first');
-        setErrorDetails({ 
-          issue: 'Missing transcript',
-          location: location.state,
-          hasState: !!location.state,
-          transcriptValue: transcript 
-        });
-        setLoading(false);
-        return;
-      }
-
-      if (transcript.trim().length < 5) {
-        setError('Transcript too short - please record a longer message');
-        setErrorDetails({ 
-          issue: 'Short transcript',
-          transcript: transcript,
-          length: transcript.length 
-        });
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        console.log('Calling AI service with streaming...');
-        
-        // Use streaming for progressive loading
-        const finalResponse = await getAIResponseStreaming(transcript, (partialResponse) => {
-          console.log('Partial response received:', partialResponse);
-          setResponse(partialResponse);
-          
-          // Show content as soon as we have the title
-          if (partialResponse.title && loading) {
-            setLoading(false);
-          }
-        });
-        
-        console.log('Final response received:', finalResponse);
-        setResponse(finalResponse);
-        setLoading(false);
-        
-        // Start generating images after we have the complete text response
-        if (finalResponse.forYouTitle && finalResponse.forThemTitle) {
-          setImagesLoading(true);
-          try {
-            const aiImages = await generateAIImages(
-              finalResponse.forYouTitle,
-              finalResponse.forYou,
-              finalResponse.forThemTitle,
-              finalResponse.forThem
-            );
-            setImages(aiImages);
-          } catch (imgError: any) {
-            // Fail silently: log the error, but do not set global error state
-            console.error('Image generation failed:', imgError);
-            setImages({ forYouImage: '', forThemImage: '' }); // Optionally set empty images
-          } finally {
-            setImagesLoading(false);
-          }
-        }
-        
-      } catch (err: any) {
-        console.error('Error fetching AI response:', err);
-        setError(`AI Service Error: ${err.message || 'Unknown error'}`);
-        setErrorDetails({ 
-          error: err,
-          message: err.message,
-          stack: err.stack,
-          transcript: transcript,
-          apiKey: process.env.REACT_APP_OPENAI_API_KEY ? 'Present' : 'Missing'
-        });
-        setLoading(false);
-      }
-    };
-
+    if (!transcript) {
+      setError('No transcript available - please record your voice first');
+      return;
+    }
     fetchAIResponse();
-  }, []);
+  }, [transcript]);
+
+  const fetchAIResponse = async () => {
+    console.log('Results page loaded with transcript:', transcript);
+    console.log('Transcript length:', transcript?.length || 0);
+    
+    if (transcript.trim().length < 5) {
+      setError('Transcript too short - please record a longer message');
+      setErrorDetails({ 
+        issue: 'Short transcript',
+        transcript: transcript,
+        length: transcript.length 
+      });
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      console.log('Calling AI service with streaming...');
+      
+      // Use streaming for progressive loading
+      const finalResponse = await getAIResponseStreaming(transcript, (partialResponse) => {
+        console.log('Partial response received:', partialResponse);
+        setResponse(partialResponse);
+        
+        // Show content as soon as we have the title
+        if (partialResponse.title && loading) {
+          setLoading(false);
+        }
+      });
+      
+      console.log('Final response received:', finalResponse);
+      setResponse(finalResponse);
+      setLoading(false);
+      
+      // Start generating images after we have the complete text response
+      if (finalResponse.forYouTitle && finalResponse.forThemTitle) {
+        setImagesLoading(true);
+        try {
+          const aiImages = await generateAIImages(
+            finalResponse.forYouTitle,
+            finalResponse.forYou,
+            finalResponse.forThemTitle,
+            finalResponse.forThem
+          );
+          setImages(aiImages);
+        } catch (imgError: any) {
+          // Fail silently: log the error, but do not set global error state
+          console.error('Image generation failed:', imgError);
+          setImages({ forYouImage: '', forThemImage: '' }); // Optionally set empty images
+        } finally {
+          setImagesLoading(false);
+        }
+      }
+      
+    } catch (err: any) {
+      console.error('Error fetching AI response:', err);
+      setError(`AI Service Error: ${err.message || 'Unknown error'}`);
+      setErrorDetails({ 
+        error: err,
+        message: err.message,
+        stack: err.stack,
+        transcript: transcript,
+        apiKey: process.env.REACT_APP_OPENAI_API_KEY ? 'Present' : 'Missing'
+      });
+      setLoading(false);
+    }
+  };
 
   const handleShuffle = async (section: 'forYou' | 'forThem') => {
     if (!transcript) {
