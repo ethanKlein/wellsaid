@@ -1,9 +1,9 @@
 import React from 'react';
 import './MobileFrame.css';
-import { useLocation } from 'react-router-dom';
+// import { useLocation } from 'react-router-dom'; // Remove if not used
 
 const MobileFrame: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const location = useLocation();
+  // const location = useLocation(); // Remove if not used
 
   return (
     <div className="mobile-frame-bg">

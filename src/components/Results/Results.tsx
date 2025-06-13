@@ -98,7 +98,7 @@ const Results: React.FC = () => {
     };
 
     fetchAIResponse();
-  }, [transcript, location.state]);
+  }, []);
 
   const handleShuffle = async (section: 'forYou' | 'forThem') => {
     if (!transcript) {

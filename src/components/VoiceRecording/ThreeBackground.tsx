@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 
 interface ThreeBackgroundProps {
@@ -202,16 +202,6 @@ const ThreeBackground: React.FC<ThreeBackgroundProps> = ({ isRecording, audioStr
   // Audio ribbon system
   const audioRibbonRef = useRef<AudioRibbon | null>(null);
 
-  // Colors from the gradient image
-  const colors = [
-    '#a7f3d0', // Light teal
-    '#6ee7b7', // Medium teal
-    '#34d399', // Darker teal
-    '#fcd5ce', // Light peach
-    '#ffb4a2', // Medium peach
-    '#fd9783', // Darker peach
-  ];
-
   // Test function to verify audio stream is working
   const testAudioStream = (stream: MediaStream) => {
     console.log('Testing audio stream:', {
@@ -340,6 +330,7 @@ const ThreeBackground: React.FC<ThreeBackgroundProps> = ({ isRecording, audioStr
       console.error('Mount ref not available');
       return;
     }
+    const mountDiv = mountRef.current; // Capture for cleanup
 
     // Ensure any previous animation is stopped
     if (animationIdRef.current) {
@@ -481,9 +472,9 @@ const ThreeBackground: React.FC<ThreeBackgroundProps> = ({ isRecording, audioStr
         audioRibbonRef.current = null;
       }
       
-      if (mountRef.current && renderer.domElement && mountRef.current.contains(renderer.domElement)) {
+      if (mountDiv && renderer.domElement && mountDiv.contains(renderer.domElement)) {
         try {
-          mountRef.current.removeChild(renderer.domElement);
+          mountDiv.removeChild(renderer.domElement);
         } catch (error) {
           console.error('Error removing canvas:', error);
         }
@@ -491,7 +482,7 @@ const ThreeBackground: React.FC<ThreeBackgroundProps> = ({ isRecording, audioStr
       
       renderer.dispose();
     };
-  }, []); // Remove dependencies to avoid re-initialization
+  }, []); // Only run once on mount
 
   // Handle audio stream changes
   useEffect(() => {
@@ -512,7 +503,7 @@ const ThreeBackground: React.FC<ThreeBackgroundProps> = ({ isRecording, audioStr
       console.log('Setting up audio analysis from useEffect...');
       setupAudioAnalysis(audioStream);
     }
-  }, [audioStream, isRecording]);
+  }, [audioStream, isRecording, setupAudioAnalysis]);
 
   return (
     <div

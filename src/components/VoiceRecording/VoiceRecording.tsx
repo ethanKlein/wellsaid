@@ -19,7 +19,6 @@ const VoiceRecording: React.FC = () => {
   const [transcript, setTranscript] = useState('');
   const [interimTranscript, setInterimTranscript] = useState('');
   const [recordedChunks, setRecordedChunks] = useState<Blob[]>([]);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -27,6 +26,49 @@ const VoiceRecording: React.FC = () => {
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    const startRecording = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        streamRef.current = stream;
+        
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = mediaRecorder;
+        
+        const chunks: Blob[] = [];
+        
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            chunks.push(event.data);
+            setRecordedChunks([...chunks]);
+          }
+        };
+        
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(chunks, { type: 'audio/webm' });
+          console.log('Recording stopped, audio blob created:', blob);
+        };
+        
+        mediaRecorder.start(100);
+        setIsRecording(true);
+        
+        // Start speech recognition
+        const recognition = initializeSpeechRecognition();
+        if (recognition) {
+          recognitionRef.current = recognition;
+          recognition.start();
+          console.log('Speech recognition started');
+        }
+        
+        console.log('Recording started');
+        
+        // Start the silence timer
+        resetSilenceTimer();
+        
+      } catch (error) {
+        console.error('Error accessing microphone:', error);
+        alert('Unable to access microphone. Please allow microphone permissions and try again.');
+      }
+    };
     startRecording();
     return () => {
       // Cleanup when component unmounts
@@ -137,51 +179,6 @@ const VoiceRecording: React.FC = () => {
     }, 3000);
   };
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      
-      const chunks: Blob[] = [];
-      
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunks.push(event.data);
-          setRecordedChunks([...chunks]);
-        }
-      };
-      
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' });
-        setAudioBlob(blob);
-        console.log('Recording stopped, audio blob created:', blob);
-      };
-      
-      mediaRecorder.start(100);
-      setIsRecording(true);
-      
-      // Start speech recognition
-      const recognition = initializeSpeechRecognition();
-      if (recognition) {
-        recognitionRef.current = recognition;
-        recognition.start();
-        console.log('Speech recognition started');
-      }
-      
-      console.log('Recording started');
-      
-      // Start the silence timer
-      resetSilenceTimer();
-      
-    } catch (error) {
-      console.error('Error accessing microphone:', error);
-      alert('Unable to access microphone. Please allow microphone permissions and try again.');
-    }
-  };
-
   const handlePause = () => {
     if (mediaRecorderRef.current && isRecording && !isPaused) {
       // Pause recording
@@ -240,32 +237,6 @@ const VoiceRecording: React.FC = () => {
           console.error('Error playing audio:', error);
         });
       }
-    }
-  };
-
-  const handleResume = () => {
-    if (mediaRecorderRef.current && isPaused) {
-      // Stop any current playback
-      if (audioRef.current) {
-        audioRef.current.pause();
-        setIsPlaying(false);
-      }
-      
-      // Resume recording
-      mediaRecorderRef.current.resume();
-      
-      // Restart speech recognition
-      const recognition = initializeSpeechRecognition();
-      if (recognition) {
-        recognitionRef.current = recognition;
-        recognition.start();
-        console.log('Speech recognition resumed');
-      }
-      
-      setIsPaused(false);
-      console.log('Recording resumed');
-      
-      resetSilenceTimer();
     }
   };
 
