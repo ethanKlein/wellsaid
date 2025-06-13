@@ -51,6 +51,12 @@ class AudioRibbon extends THREE.Mesh {
 }
 
 const ThreeBackground: React.FC<ThreeBackgroundProps> = ({ isRecording, audioStream }) => {
+  console.log('[ThreeBackground] FILE LOADED - TOP OF FILE');
+  console.log('[ThreeBackground] COMPONENT RENDER');
+  React.useEffect(() => {
+    console.log('[ThreeBackground] TEST EFFECT');
+  });
+  console.log('[ThreeBackground] MOUNT isRecording:', isRecording, 'audioStream:', !!audioStream);
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -63,6 +69,7 @@ const ThreeBackground: React.FC<ThreeBackgroundProps> = ({ isRecording, audioStr
 
   const updateRibbon = useCallback((dataArray: Uint8Array) => {
     if (!audioRibbonRef.current) return;
+    console.log('[ThreeBackground] updateRibbon called');
     audioRibbonRef.current.update(dataArray);
   }, []);
 
@@ -111,6 +118,7 @@ const ThreeBackground: React.FC<ThreeBackgroundProps> = ({ isRecording, audioStr
 
   const setupAudioAnalysis = useCallback(() => {
     if (!audioStream) return;
+    console.log('[ThreeBackground] setupAudioAnalysis called');
     
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     const analyser = audioContext.createAnalyser();
@@ -171,41 +179,60 @@ const ThreeBackground: React.FC<ThreeBackgroundProps> = ({ isRecording, audioStr
     return Math.min(1, level * 1.5);
   };
 
-  useEffect(() => {
-    if (!containerRef.current) return;
+  // Move main Three.js useEffect here
+  React.useEffect(() => {
+    // Three.js initialization effect
+    console.log('[ThreeBackground] useEffect start - [] DEP ARRAY');
+    if (!containerRef.current) {
+      console.log('[ThreeBackground] containerRef.current is null at effect start, will retry in 100ms');
+      setTimeout(() => {
+        if (containerRef.current) {
+          console.log('[ThreeBackground] setTimeout: containerRef.current is now set');
+        } else {
+          console.log('[ThreeBackground] setTimeout: containerRef.current is STILL null');
+        }
+      }, 100);
+      return;
+    }
+    console.log('[ThreeBackground] containerRef.current exists:', containerRef.current);
+    console.log('[ThreeBackground] Creating Three.js canvas');
 
     // Initialize Three.js scene
     const scene = new THREE.Scene();
     sceneRef.current = scene;
+    console.log('[ThreeBackground] Scene created');
 
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.z = 5;
     cameraRef.current = camera;
+    console.log('[ThreeBackground] Camera created');
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    containerRef.current.appendChild(renderer.domElement);
+    containerRef.current!.appendChild(renderer.domElement);
     rendererRef.current = renderer;
+    console.log('[ThreeBackground] Renderer canvas appended');
 
     // Create audio-responsive ribbon
     const audioRibbon = new AudioRibbon();
     audioRibbonRef.current = audioRibbon;
     scene.add(audioRibbon);
+    console.log('[ThreeBackground] AudioRibbon added to scene');
 
     // Animation loop
     const animate = () => {
       if (!sceneRef.current || !cameraRef.current || !rendererRef.current) return;
-
       // Get audio data and update ribbon
       if (audioRibbonRef.current && audioDataRef.current) {
         audioRibbonRef.current.update(audioDataRef.current);
+        console.log('[ThreeBackground] Animation loop: ribbon updated');
       }
-
       rendererRef.current.render(sceneRef.current, cameraRef.current);
       animationFrameRef.current = requestAnimationFrame(animate);
     };
 
     animate();
+    console.log('[ThreeBackground] Animation started');
 
     // Store refs in local variables for cleanup
     const currentAudioContext = audioContextRef.current;
@@ -229,6 +256,7 @@ const ThreeBackground: React.FC<ThreeBackgroundProps> = ({ isRecording, audioStr
         currentAudioRibbon.geometry.dispose();
         (currentAudioRibbon.material as THREE.Material).dispose();
       }
+      console.log('[ThreeBackground] Cleanup complete');
     };
   }, []);
 
@@ -259,8 +287,9 @@ const ThreeBackground: React.FC<ThreeBackgroundProps> = ({ isRecording, audioStr
       style={{
         width: '100%',
         height: '100%',
-        background: 'transparent',
-        pointerEvents: 'none', // Disable interaction for ribbon
+        background: 'yellow', // bright debug background
+        pointerEvents: 'none',
+        border: '2px solid red',
       }}
     />
   );

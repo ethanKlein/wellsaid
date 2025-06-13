@@ -91,31 +91,26 @@ const VoiceRecording: React.FC = () => {
   }, [isPaused, isProcessing, isRecording, resetSilenceTimer]);
 
   useEffect(() => {
+    if (isPaused) return;
     const startRecording = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         streamRef.current = stream;
-        
         const mediaRecorder = new MediaRecorder(stream);
         mediaRecorderRef.current = mediaRecorder;
-        
         const chunks: Blob[] = [];
-        
         mediaRecorder.ondataavailable = (event) => {
           if (event.data.size > 0) {
             chunks.push(event.data);
             setRecordedChunks([...chunks]);
           }
         };
-        
         mediaRecorder.onstop = () => {
           const blob = new Blob(chunks, { type: 'audio/webm' });
           console.log('Recording stopped, audio blob created:', blob);
         };
-        
         mediaRecorder.start(100);
         setIsRecording(true);
-        
         // Start speech recognition
         const recognition = initializeSpeechRecognition();
         if (recognition) {
@@ -123,12 +118,9 @@ const VoiceRecording: React.FC = () => {
           recognition.start();
           console.log('Speech recognition started');
         }
-        
         console.log('Recording started');
-        
         // Start the silence timer
         resetSilenceTimer();
-        
       } catch (error) {
         console.error('Error accessing microphone:', error);
         alert('Unable to access microphone. Please allow microphone permissions and try again.');
@@ -150,7 +142,7 @@ const VoiceRecording: React.FC = () => {
         clearTimeout(silenceTimerRef.current);
       }
     };
-  }, [initializeSpeechRecognition, resetSilenceTimer]);
+  }, [initializeSpeechRecognition, resetSilenceTimer, isPaused]);
 
   useEffect(() => {
     initializeSpeechRecognition();
@@ -159,21 +151,19 @@ const VoiceRecording: React.FC = () => {
 
   const handlePause = () => {
     if (mediaRecorderRef.current && isRecording && !isPaused) {
-      // Pause recording
-      mediaRecorderRef.current.pause();
-      
-      // Pause speech recognition
+      // Stop recording
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      setIsPaused(true);
+      // Stop speech recognition
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
-      
       // Clear auto-stop timers when paused
       if (silenceTimerRef.current) {
         clearTimeout(silenceTimerRef.current);
       }
-      
-      setIsPaused(true);
-      console.log('Recording paused');
+      console.log('Recording stopped and paused');
     }
   };
 
