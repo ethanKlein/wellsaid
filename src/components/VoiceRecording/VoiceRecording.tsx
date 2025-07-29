@@ -327,7 +327,7 @@ const VoiceRecording: React.FC = () => {
           <div className="voice-visualizer-abs">
             <ThreeBackground 
               isRecording={isRecording} 
-              audioStream={streamRef.current || undefined} 
+              audioStream={streamRef.current || null} 
             />
           </div>
         )}
